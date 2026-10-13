@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evaluated RAG QA Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 24, 38, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --code-bg: rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at top right, #1e1b4b, #090d16 60%);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      margin-bottom: 0.75rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      background: rgba(10, 15, 29, 0.75);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text-main);
+      resize: vertical;
+      transition: all 0.2s ease;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    .sample-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.6rem;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .chip:hover {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    .mode-selector {
+      display: flex;
+      background: rgba(10, 15, 29, 0.75);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 0.25rem;
+      gap: 0.25rem;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 0.45rem 0.5rem;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .mode-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    }
+
+    .top-k-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(10, 15, 29, 0.75);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 0.4rem 0.75rem;
+    }
+
+    .top-k-wrapper input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+    }
+
+    .top-k-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--accent);
+      min-width: 2.2rem;
+      text-align: right;
+    }
+
+    .submit-row {
+      margin-top: 1.25rem;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    button#submit-btn {
+      background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.7rem 1.6rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    button#submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    button#submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Results section */
+    .results-container {
+      display: none;
+    }
+
+    .meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .meta-pills {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .pill {
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .pill-mode {
+      background: rgba(99, 102, 241, 0.2);
+      color: #c7d2fe;
+    }
+
+    .pill-latency {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+    }
+
+    .pill-note {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+    }
+
+    .answer-box {
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 3px solid var(--accent);
+      padding: 1.1rem 1.25rem;
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 1.5rem;
+      line-height: 1.65;
+      font-size: 0.95rem;
+    }
+
+    .answer-box.null-mode {
+      border-left-color: var(--warning);
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .sources-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .source-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .source-item {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .source-header {
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .source-header:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .source-id-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .score-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .source-body {
+      padding: 0.9rem 1rem;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: #cbd5e1;
+      border-top: 1px solid var(--card-border);
+      background: rgba(0, 0, 0, 0.35);
+      display: none;
+      white-space: pre-wrap;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .source-body.open {
+      display: block;
+    }
+
+    .chevron {
+      transition: transform 0.2s ease;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .chevron.open {
+      transform: rotate(90deg);
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 640px) {
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">
+        <span class="status-dot"></span>
+        <span id="health-label">FastAPI • Index Active</span>
+      </div>
+      <h1>Evaluated RAG QA Engine</h1>
+      <p class="subtitle">Multi-mode question answering evaluating BM25, Dense embeddings, and Reciprocal Rank Fusion retrieval.</p>
+    </header>
+
+    <div class="card">
+      <div class="form-group">
+        <label for="query-input">Ask a question over the technical corpus:</label>
+        <div class="input-wrapper">
+          <textarea id="query-input" placeholder="e.g. What is the Raft Log Matching Property and how is election safety enforced?"></textarea>
+        </div>
+        <div class="sample-chips">
+          <span class="chip" onclick="setQuery('What is the Raft Log Matching Property and how is election safety enforced?')">Raft Safety Invariant</span>
+          <span class="chip" onclick="setQuery('How does Two-Phase Commit cause the blocking problem on coordinator crash?')">2PC Blocking Problem</span>
+          <span class="chip" onclick="setQuery('What is the difference between B+ Tree and LSM-Tree write paths?')">B+ Tree vs LSM-Tree</span>
+          <span class="chip" onclick="setQuery('How does Reciprocal Rank Fusion combine rank scores?')">RRF Score Fusion</span>
+        </div>
+      </div>
+
+      <div class="controls-grid">
+        <div>
+          <label>Retrieval Mode</label>
+          <div class="mode-selector">
+            <button type="button" class="mode-btn active" data-mode="hybrid" onclick="selectMode('hybrid')">Hybrid (RRF)</button>
+            <button type="button" class="mode-btn" data-mode="dense" onclick="selectMode('dense')">Dense (FAISS)</button>
+            <button type="button" class="mode-btn" data-mode="bm25" onclick="selectMode('bm25')">BM25 (Sparse)</button>
+          </div>
+        </div>
+        <div>
+          <label>Top K Chunks: <span id="top-k-label" class="top-k-val">5</span></label>
+          <div class="top-k-wrapper">
+            <input type="range" id="top-k-slider" min="1" max="15" value="5" oninput="updateTopK(this.value)">
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-row">
+        <button type="button" id="submit-btn" onclick="submitAsk()">
+          <span class="spinner" id="btn-spinner"></span>
+          <span id="btn-text">Search & Answer</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Display -->
+    <div class="card results-container" id="results-card">
+      <div class="meta-bar">
+        <div class="meta-pills">
+          <span class="pill pill-mode" id="res-mode">MODE: HYBRID</span>
+          <span class="pill pill-latency" id="res-latency">140 ms</span>
+          <span class="pill pill-note" id="res-note" style="display:none;">RETRIEVAL-ONLY</span>
+        </div>
+        <span id="res-count">5 sources retrieved</span>
+      </div>
+
+      <div id="answer-section">
+        <label>Generated Answer</label>
+        <div class="answer-box" id="answer-content">Loading...</div>
+      </div>
+
+      <div>
+        <div class="sources-title">
+          <span>Retrieved Citations & Passages</span>
+        </div>
+        <div class="source-list" id="sources-list"></div>
+      </div>
+    </div>
+
+    <footer>
+      Built with Antigravity RAG • Measured and evaluated across BM25, Dense, and Hybrid modes.
+    </footer>
+  </div>
+
+  <script>
+    let activeMode = 'hybrid';
+    let activeTopK = 5;
+
+    function setQuery(text) {
+      document.getElementById('query-input').value = text;
+      document.getElementById('query-input').focus();
+    }
+
+    function selectMode(mode) {
+      activeMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+    }
+
+    function updateTopK(val) {
+      activeTopK = parseInt(val, 10);
+      document.getElementById('top-k-label').innerText = val;
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch('/health');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('health-label').innerText = `FastAPI • ${data.chunks} Chunks Active`;
+        }
+      } catch (err) {
+        console.warn('Health check failed', err);
+      }
+    }
+    checkHealth();
+
+    async function submitAsk() {
+      const query = document.getElementById('query-input').value.trim();
+      if (!query) {
+        alert('Please enter a question or select a sample topic.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-btn');
+      const spinner = document.getElementById('btn-spinner');
+      const btnText = document.getElementById('btn-text');
+
+      submitBtn.disabled = true;
+      spinner.style.display = 'inline-block';
+      btnText.innerText = 'Retrieving...';
+
+      try {
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: query,
+            mode: activeMode,
+            top_k: activeTopK
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || 'Request failed');
+        }
+
+        const data = await res.json();
+        renderResults(data);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.innerText = 'Search & Answer';
+      }
+    }
+
+    function renderResults(data) {
+      const resultsCard = document.getElementById('results-card');
+      resultsCard.style.display = 'block';
+
+      document.getElementById('res-mode').innerText = `MODE: ${data.mode.toUpperCase()}`;
+      document.getElementById('res-latency').innerText = `${data.latency_ms} ms`;
+      document.getElementById('res-count').innerText = `${data.sources.length} sources retrieved`;
+
+      const noteEl = document.getElementById('res-note');
+      if (data.note) {
+        noteEl.style.display = 'inline-block';
+        noteEl.innerText = data.note;
+      } else {
+        noteEl.style.display = 'none';
+      }
+
+      const answerEl = document.getElementById('answer-content');
+      if (data.answer) {
+        answerEl.classList.remove('null-mode');
+        answerEl.innerText = data.answer;
+      } else {
+        answerEl.classList.add('null-mode');
+        answerEl.innerText = data.note || 'Retrieval-only mode active. Sources retrieved successfully without LLM generation.';
+      }
+
+      const sourcesList = document.getElementById('sources-list');
+      sourcesList.innerHTML = '';
+
+      data.sources.forEach((s, idx) => {
+        const item = document.createElement('div');
+        item.className = 'source-item';
+
+        const pageLabel = s.page !== null ? ` • p.${s.page}` : '';
+        item.innerHTML = `
+          <div class="source-header" onclick="toggleSource(${idx})">
+            <div class="source-id-badge">
+              <span class="chevron" id="chevron-${idx}">▶</span>
+              <span>#${idx + 1} ${s.doc_id}</span>
+              <span style="color:#64748b; font-size:0.75rem;">(${s.chunk_id}${pageLabel})</span>
+            </div>
+            <span class="score-badge">Score: ${s.score.toFixed(5)}</span>
+          </div>
+          <div class="source-body" id="body-${idx}">${escapeHtml(s.text)}</div>
+        `;
+        sourcesList.appendChild(item);
+      });
+
+      // Auto expand first source
+      if (data.sources.length > 0) {
+        toggleSource(0);
+      }
+
+      resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function toggleSource(idx) {
+      const body = document.getElementById(`body-${idx}`);
+      const chevron = document.getElementById(`chevron-${idx}`);
+      if (!body) return;
+      const isOpen = body.classList.toggle('open');
+      chevron.classList.toggle('open', isOpen);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  </script>
+</body>
+</html>
